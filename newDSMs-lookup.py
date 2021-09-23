@@ -32,13 +32,37 @@ class newDSMlookup:
         final_url = fixed_url + "%2cu_cs_case_owner%2cu_offer_name%2Ccustomer%2cu_order_status%2cu_order_substatus%2cu_offer_type%2Cu_te_primary%2Cu_te_primary.email%2Cu_te_secondary%2Cu_te_secondary.email%2Cu_te_tertiary%2Cu_te_tertiary.email%2Cu_contract_number%2Cu_contract_term%2Cu_service_start_date%2Cu_service_end_date%2Cu_subscription_id%2Cu_web_order_id%2Cu_architecture%2Cu_covered_products%2Cu_covered_product%2Cu_product_status&sysparm_query=customerLIKE" + account_name #+ '^u_order_status!=Expired^u_order_sub_status!=Inactive'  #"  # ^u_order_substatus!=Expired"
 
         # Do the HTTP request
-        response = requests.get(final_url, auth=(user, pwd), headers=self.headers)
+        expert = requests.get(final_url, auth=(user, pwd), headers=self.headers).json()["result"]
 
-        expert = response.json()["result"]
+        if len(expert) <= 0:
 
-        return expert
+            print("se chinga porque no existe")
+
+        else:
+
+            # Validation Order Status Section ###
+
+            for i in range(len(expert)):
+
+                if expert[i]['u_order_status'] == 'Expired' or expert[i]['u_order_status'] == 'Cancelled':
+
+                    del expert[i]
+                    status = "Expired"
+
+            if len(expert) <= 0:
+
+                print(status)
+
+            else:
+
+                print("flag")
+
+
+            return expert
 
 
 dsmlookup = newDSMlookup()
 
-print(dsmlookup.chorus(account_name="t-mobile"))
+print(dsmlookup.chorus(account_name="eversana"))
+
+print(time.perf_counter() - start_time, "seconds")
