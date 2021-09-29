@@ -2,9 +2,8 @@ import json
 import re
 import requests
 import time
-#from datetime import datetime, date
 import datetime
-from core_au import user, pwd, fixed_url
+from core_au import user, pwd, fixed_url, svr_url
 
 start_time = time.perf_counter()
 
@@ -27,9 +26,17 @@ class newDSMlookup:
 
             return "\n Could not calculate the service remaining days..."
 
+    def getDSMs(self, svr_number):
+
+        final_url = svr_url + svr_number
+
+        dsm = requests.get(final_url, auth=(user, pwd), headers=self.headers).json()["result"]
+
+        return dsm
+
     def chorus(self, account_name):
 
-        final_url = fixed_url + "%2cu_cs_case_owner%2cu_offer_name%2Ccustomer%2cu_order_status%2cu_order_substatus%2cu_offer_type%2Cu_te_primary%2Cu_te_primary.email%2Cu_te_secondary%2Cu_te_secondary.email%2Cu_te_tertiary%2Cu_te_tertiary.email%2Cu_contract_number%2Cu_contract_term%2Cu_service_start_date%2Cu_service_end_date%2Cu_subscription_id%2Cu_web_order_id%2Cu_architecture%2Cu_covered_products%2Cu_covered_product%2Cu_product_status&sysparm_query=customerLIKE" + account_name #+ '^u_order_status!=Expired^u_order_sub_status!=Inactive'  #"  # ^u_order_substatus!=Expired"
+        final_url = fixed_url + "%2Cu_record_number%2cu_cs_case_owner%2cu_offer_name%2Ccustomer%2cu_order_status%2cu_order_substatus%2cu_offer_type%2Cu_te_primary%2Cu_te_primary.email%2Cu_te_secondary%2Cu_te_secondary.email%2Cu_te_tertiary%2Cu_te_tertiary.email%2Cu_contract_number%2Cu_contract_term%2Cu_service_start_date%2Cu_service_end_date%2Cu_subscription_id%2Cu_web_order_id%2Cu_architecture%2Cu_covered_products%2Cu_covered_product%2Cu_product_status&sysparm_query=customerLIKE" + account_name #+ '^u_order_status!=Expired^u_order_sub_status!=Inactive'  #"  # ^u_order_substatus!=Expired"
 
         # Do the HTTP request
         expert = requests.get(final_url, auth=(user, pwd), headers=self.headers).json()["result"]
@@ -54,33 +61,33 @@ class newDSMlookup:
 
                 except:
 
-                    print(status)
+                    print("No Expired")
 
-            try:
+                try:
 
-                if expert[i]['u_order_status'] == 'Cancelled':
-                    del expert[i]
-                    status += "Cancelled, "
+                    if expert[i]['u_order_status'] == 'Cancelled':
+                        del expert[i]
+                        status += "Cancelled, "
 
-            except:
+                except:
 
-                print(status)
+                    print("No Cancelled")
 
-            try:
+                try:
 
-                if expert[i]['u_order_status'] == 'Inactive':
-                    del expert[i]
-                    status += "Inactive, "
+                    if expert[i]['u_order_status'] == 'Inactive':
+                        del expert[i]
+                        status += "Inactive, "
 
-            except:
+                except:
 
-                print(status)
+                    print("No Inactive")
 
 
 
             if len(expert) <= 0:
 
-                print("no hay")
+                print(status + " Order(s)")
 
             else:
 
@@ -92,7 +99,7 @@ class newDSMlookup:
 
                     accounts = []
                     collab_products, security_info, inserted_values = [], [], []
-                    collab_p = []
+                    collaboration = []
                     subscriptions = []
                     offer_t = []
                     weborders = []
@@ -103,26 +110,29 @@ class newDSMlookup:
                     for data in expert:
 
                         if cu == data['customer']:
-                            moreinfo = {}
-                            moreinfo['dsm1'] = data['u_te_primary']
-                            moreinfo['email1'] = data['u_te_primary.email']
-                            moreinfo['dsm2'] = data['u_te_secondary']
-                            moreinfo['email2'] = data['u_te_secondary.email']
-                            moreinfo['dsm3'] = data['u_te_tertiary']
-                            moreinfo['email3'] = data['u_te_tertiary.email']
-                            moreinfo['service_start'] = data['u_service_start_date']
-                            moreinfo['service_end'] = data['u_service_end_date']
-                            moreinfo['order_status'] = data['u_order_substatus']
 
-                            collab_products.append(moreinfo)
+                            if data['u_architecture'] == 'Collaboration':
 
+                                info = {}
+                                info['dsm1'] = data['u_te_primary']
+                                info['email1'] = data['u_te_primary.email']
+                                info['dsm2'] = data['u_te_secondary']
+                                info['email2'] = data['u_te_secondary.email']
+                                info['dsm3'] = data['u_te_tertiary']
+                                info['email3'] = data['u_te_tertiary.email']
+                                info['service_start'] = data['u_service_start_date']
+                                info['service_end'] = data['u_service_end_date']
+                                info['order_status'] = data['u_order_substatus']
 
+                                collaboration.append(info)
+                                print(data['number'])
+                                print(self.getDSMs(svr_number=data['number']))
 
-            return moreinfo
+            return collaboration
 
 
 dsmlookup = newDSMlookup()
 
-print(dsmlookup.chorus(account_name="navy"))
+print(dsmlookup.chorus(account_name="t-mobile"))
 
 print(time.perf_counter() - start_time, "seconds")
