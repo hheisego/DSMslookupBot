@@ -41,28 +41,88 @@ class newDSMlookup:
         else:
 
             # Validation Order Status Section ###
+            status = ''
 
             for i in range(len(expert)):
 
-                if expert[i]['u_order_status'] == 'Expired' or expert[i]['u_order_status'] == 'Cancelled':
+                try:
 
+                    if expert[i]['u_order_status'] == 'Expired':
+
+                        del expert[i]
+                        status += "Expired, "
+
+                except:
+
+                    print(status)
+
+            try:
+
+                if expert[i]['u_order_status'] == 'Cancelled':
                     del expert[i]
-                    status = "Expired"
+                    status += "Cancelled, "
 
-            if len(expert) <= 0:
+            except:
 
                 print(status)
 
+            try:
+
+                if expert[i]['u_order_status'] == 'Inactive':
+                    del expert[i]
+                    status += "Inactive, "
+
+            except:
+
+                print(status)
+
+
+
+            if len(expert) <= 0:
+
+                print("no hay")
+
             else:
 
-                print("flag")
+                customer = list(set(debug['customer'] for debug in expert))
+
+                clean_dataset = []
+
+                for cu in customer:
+
+                    accounts = []
+                    collab_products, security_info, inserted_values = [], [], []
+                    collab_p = []
+                    subscriptions = []
+                    offer_t = []
+                    weborders = []
+                    contracts = []
+                    offer_n = []
+                    service_s, service_e = [], []
+
+                    for data in expert:
+
+                        if cu == data['customer']:
+                            moreinfo = {}
+                            moreinfo['dsm1'] = data['u_te_primary']
+                            moreinfo['email1'] = data['u_te_primary.email']
+                            moreinfo['dsm2'] = data['u_te_secondary']
+                            moreinfo['email2'] = data['u_te_secondary.email']
+                            moreinfo['dsm3'] = data['u_te_tertiary']
+                            moreinfo['email3'] = data['u_te_tertiary.email']
+                            moreinfo['service_start'] = data['u_service_start_date']
+                            moreinfo['service_end'] = data['u_service_end_date']
+                            moreinfo['order_status'] = data['u_order_substatus']
+
+                            collab_products.append(moreinfo)
 
 
-            return expert
+
+            return moreinfo
 
 
 dsmlookup = newDSMlookup()
 
-print(dsmlookup.chorus(account_name="eversana"))
+print(dsmlookup.chorus(account_name="navy"))
 
 print(time.perf_counter() - start_time, "seconds")
