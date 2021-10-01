@@ -40,120 +40,132 @@ class newDSMlookup:
         final_url = fixed_url + "%2Cu_record_number%2cu_cs_case_owner%2cu_offer_name%2Ccustomer%2cu_order_status%2cu_order_substatus%2cu_offer_type%2Cu_contract_number%2Cu_contract_term%2Cu_service_start_date%2Cu_service_end_date%2Cu_subscription_id%2Cu_web_order_id%2Cu_architecture%2Cu_covered_products%2Cu_covered_product%2Cu_product_status&sysparm_query=customerLIKE" + account_name #+ '^u_order_status!=Expired^u_order_sub_status!=Inactive'  #"  # ^u_order_substatus!=Expired"
 
         # Do the HTTP request
-        expert = requests.get(final_url, auth=(user, pwd), headers=self.headers).json()["result"]
+        expert = requests.get(final_url, auth=(user, pwd), headers=self.headers)
 
-        if len(expert) <= 0:
+        if expert.status_code != 200:
 
-            print("se chinga porque no existe")
+            print("vuelve a intentar por fa")
 
         else:
 
-            # Validation Order Status Section ###
-            status = ''
-
-            for i in range(len(expert)):
-
-                try:
-
-                    if expert[i]['u_order_status'] == 'Expired':
-
-                        del expert[i]
-                        status += "Expired, "
-
-                except:
-
-                    print("No Expired")
-
-                try:
-
-                    if expert[i]['u_order_status'] == 'Cancelled':
-                        del expert[i]
-                        status += "Cancelled, "
-
-                except:
-
-                    print("No Cancelled")
-
-                try:
-
-                    if expert[i]['u_order_status'] == 'Inactive':
-                        del expert[i]
-                        status += "Inactive, "
-
-                except:
-
-                    print("No Inactive")
-
-
+            expert = expert.json()["result"]
 
             if len(expert) <= 0:
 
-                print(status + " Order(s)")
+                print("se chinga porque no existe")
 
             else:
 
-                customer = list(set(debug['customer'] for debug in expert))
+                # Validation Order Status Section ###
+                status = ''
 
-                clean_dataset = []
+                for i in range(len(expert)):
 
-                for cu in customer:
+                    try:
 
-                    accounts = []
-                    collab_products, security_info, inserted_values = [], [], []
-                    collaboration = []
-                    subscriptions = []
-                    last_updates = []
-                    weborders = []
-                    contracts = []
-                    offer_n = []
-                    service_s, service_e = [], []
+                        if expert[i]['u_order_status'] == 'Expired':
+                            del expert[i]
+                            status += "Expired, "
 
-                    for data in expert:
+                    except:
 
-                        if cu == data['customer']:
+                        print("No Expired")
 
-                            if data['u_architecture'] == 'Collaboration':
+                    try:
 
-                                info = {}
-                                info['Customer'] = data['customer']
-                                info['service_start'] = data['u_service_start_date']
-                                info['service_end'] = data['u_service_end_date']
-                                info['order_status'] = data['u_order_substatus']
+                        if expert[i]['u_order_status'] == 'Cancelled':
+                            del expert[i]
+                            status += "Cancelled, "
 
-                                collaboration.append(info)
-                                print(data['number'])
-                                print(self.getDSMs(svr_number=data['number']))
+                    except:
 
-                                for i in self.getDSMs(svr_number=data['number']):
+                        print("No Cancelled")
 
-                                    if i.get("u_role") == "TE Primary" and i.get('u_last_updated') is not None:
+                    try:
 
-                                        ultima_modificacion = i.get('u_last_updated')[:i.get('u_last_updated').index(" ")]
-                                        ultima_modificacion = datetime.datetime.strptime(ultima_modificacion, "%m/%d/%Y")
+                        if expert[i]['u_order_status'] == 'Inactive':
+                            del expert[i]
+                            status += "Inactive, "
 
-                                        last_updates.append(ultima_modificacion)
+                    except:
 
+                        print("No Inactive")
 
-                                print("\nahi va la chida:\n")
+                if len(expert) <= 0:
 
-                                ultima_modificacion = str(max(last_updates))
-                                ultima_modificacion = ultima_modificacion[:ultima_modificacion.index(" ")]
-                                ultima_modificacion = datetime.datetime.strptime(ultima_modificacion, "%Y-%m-%d")
-                                ultima_modificacion = ('{0}/{1}/{2}'.format(ultima_modificacion.month, ultima_modificacion.day, ultima_modificacion.year))
+                    print(status + " Order(s)")
 
-                                print(ultima_modificacion)
+                else:
 
-                                for i in self.getDSMs(svr_number=data['number']):
+                    customer = list(set(debug['customer'] for debug in expert))
 
-                                    if i.get('u_last_updated') is not None and i.get('u_last_updated').find(ultima_modificacion) == True:
+                    clean_dataset = []
 
-                                        print(i.get("u_technical_expert"))
+                    for cu in customer:
 
-            return "simon"
+                        accounts = []
+                        collab_products, security_info, inserted_values = [], [], []
+                        collaboration = []
+                        subscriptions = []
+                        last_updates = []
+                        weborders = []
+                        contracts = []
+                        offer_n = []
+                        service_s, service_e = [], []
 
+                        for data in expert:
+
+                            if cu == data['customer']:
+
+                                if data['u_architecture'] == 'Collaboration':
+
+                                    info = {}
+                                    info['Customer'] = data['customer']
+                                    info['service_start'] = data['u_service_start_date']
+                                    info['service_end'] = data['u_service_end_date']
+                                    info['order_status'] = data['u_order_substatus']
+
+                                    collaboration.append(info)
+                                    #print(data['number'])
+                                    #print(self.getDSMs(svr_number=data['number']))
+
+                                    print(time.perf_counter() - start_time, "seconds")
+
+                                    # getting damn DSM 1 ### lets check how to move this block to a method
+
+                                    for i in self.getDSMs(svr_number=data['number']):
+
+                                        if i.get("u_role") == "TE Primary" and i.get('u_last_updated') is not None:
+
+                                            ultima_modificacion = i.get('u_last_updated')[:i.get('u_last_updated').index(" ")]
+                                            ultima_modificacion = datetime.datetime.strptime(ultima_modificacion, "%m/%d/%Y")
+
+                                            last_updates.append(ultima_modificacion)
+
+                                    print("\nahi va la chida:\n")
+
+                                    ultima_modificacion = str(max(last_updates))
+                                    ultima_modificacion = ultima_modificacion[:ultima_modificacion.index(" ")]
+                                    ultima_modificacion = datetime.datetime.strptime(ultima_modificacion, "%Y-%m-%d")
+                                    ultima_modificacion = ('{0}/{1}/{2}'.format(ultima_modificacion.month, ultima_modificacion.day, ultima_modificacion.year))
+
+                                    print(ultima_modificacion)
+
+                                    for i in self.getDSMs(svr_number=data['number']):
+
+                                        if i.get('u_last_updated') is not None and i.get('u_last_updated').find(ultima_modificacion) == True:
+
+                                            #print(i.get("u_technical_expert"))
+
+                                            if i.get('u_role'):# and i.get('u_role') == "TE Primary":
+
+                                                print(i.get("u_technical_expert.email"))
+
+                return "simon"
 
 dsmlookup = newDSMlookup()
 
 print(dsmlookup.chorus(account_name="t-mobile"))
 print("\n\n")
 print(time.perf_counter() - start_time, "seconds")
+
