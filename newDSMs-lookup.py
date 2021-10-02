@@ -133,7 +133,11 @@ class newDSMlookup:
 
                                     # getting damn DSM 1 ### lets check how to move this block to a method
 
+                                    print(data['number'])
+
                                     for i in self.getDSMs(svr_number=data['number']):
+
+                                        print(i.get("u_role"))
 
                                         if i.get("u_role") == "TE Primary" and i.get('u_last_updated') is not None:
 
