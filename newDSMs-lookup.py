@@ -124,6 +124,7 @@ class newDSMlookup:
                         sproducts = []
                         srv_security = []
                         sdsms = []
+                        csstart = []
 
                         for data in expert:
 
@@ -145,6 +146,11 @@ class newDSMlookup:
 
                                     elif data['u_covered_product'] and data['u_covered_product'] not in cproducts:
                                         cproducts.append(data['u_covered_product'])
+
+                                    if data['u_service_start_date'] and data['u_service_start_date'] not in csstart:
+                                        csstart.append(data['u_service_start_date'])
+
+                                        print(data['u_service_start_date'])
 
                                     #collab['weborders'] = inserted_values
 
