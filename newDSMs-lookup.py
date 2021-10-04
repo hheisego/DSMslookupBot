@@ -5,6 +5,9 @@ import time
 import datetime
 from core_au import user, pwd, fixed_url, svr_url
 
+#Static Variables#
+#reg = re.compile(pattern=r"(\d{8})")
+
 start_time = time.perf_counter()
 
 class newDSMlookup:
@@ -28,11 +31,19 @@ class newDSMlookup:
 
     def getDSMs(self, svr_number):
 
-        final_url = svr_url + svr_number
+        final_url = svr_url + svr_number + '^u_end_date=^u_role!='
 
         dsm = requests.get(final_url, auth=(user, pwd), headers=self.headers).json()["result"]
 
         return dsm
+
+    def weborder(self, sub_web_id):
+
+        #reg = re.compile(pattern=r"(\d{8})")
+        reg = re.compile(pattern=r"(Sub\d{6}|\d{8})")
+        result = re.findall(reg, str(sub_web_id))
+
+        return result
 
     def chorus(self, account_name):
 
@@ -65,53 +76,54 @@ class newDSMlookup:
 
                         if expert[i]['u_order_status'] == 'Expired':
                             del expert[i]
-                            status += "Expired, "
+                            status += " || Expired Contract || "
 
                     except:
 
-                        print("No Expired")
+                        status += "No Expired Orders, "
 
                     try:
 
                         if expert[i]['u_order_status'] == 'Cancelled':
                             del expert[i]
-                            status += "Cancelled, "
+                            status += " || Cancelled Contract || "
 
                     except:
 
-                        print("No Cancelled")
+                        status += "No Cancelled Orders, "
 
                     try:
 
                         if expert[i]['u_order_status'] == 'Inactive':
                             del expert[i]
-                            status += "Inactive, "
+                            status += " || Inactive Contract || "
 
                     except:
 
-                        print("No Inactive")
+                        status += "No Inactive Orders."
 
                 if len(expert) <= 0:
 
-                    print(status + " Order(s)")
+                    print(status + " Please reach out the account team")
 
                 else:
 
                     customer = list(set(debug['customer'] for debug in expert))
 
                     clean_dataset = []
-
+                    print(expert)
                     for cu in customer:
 
-                        accounts = []
-                        collab_products, security_info, inserted_values = [], [], []
-                        collaboration = []
-                        subscriptions = []
-                        last_updates = []
-                        weborders = []
-                        contracts = []
-                        offer_n = []
-                        service_s, service_e = [], []
+                        inserted_values = []
+                        info = {}
+                        csubscription = []
+                        ssubscription = []
+                        sweborder = []
+                        cweborder = []
+                        cproducts = []
+                        sproducts = []
+                        srv_security = []
+                        sdsms = []
 
                         for data in expert:
 
@@ -119,57 +131,97 @@ class newDSMlookup:
 
                                 if data['u_architecture'] == 'Collaboration':
 
-                                    info = {}
-                                    info['Customer'] = data['customer']
-                                    info['service_start'] = data['u_service_start_date']
-                                    info['service_end'] = data['u_service_end_date']
-                                    info['order_status'] = data['u_order_substatus']
+                                    # Web Order ID #
+                                    if self.weborder(sub_web_id=data['u_web_order_id']) not in cweborder:
+                                        cweborder.append(self.weborder(sub_web_id=data['u_web_order_id']))
 
-                                    collaboration.append(info)
-                                    #print(data['number'])
-                                    #print(self.getDSMs(svr_number=data['number']))
+                                    # Subscriptions #
+                                    if self.weborder(sub_web_id=data['u_subscription_id']) not in csubscription:
+                                        csubscription.append(self.weborder(sub_web_id=data['u_subscription_id']))
 
-                                    print(time.perf_counter() - start_time, "seconds")
+                                    # Covered Products #
+                                    if data['u_covered_products'] and data['u_covered_products'] not in cproducts:
+                                        cproducts.append(data['u_covered_products'])
+
+                                    elif data['u_covered_product'] and data['u_covered_product'] not in cproducts:
+                                        cproducts.append(data['u_covered_product'])
+
+                                    #collab['weborders'] = inserted_values
+
+                                    #info[data['u_architecture']] = collab
+
+                                        #print("collab")
+
+
+                                        #print(result)
+
+                                        #inserted_values = inserted_values + self.weborder(weborderid=data['u_web_order_id'])
+                                        #inserted_values.append(self.weborder(weborderid=data['u_web_order_id']))
+
+                                elif data['u_architecture'] == 'Security':
+
+                                    # Web Order ID #
+                                    if self.weborder(sub_web_id=data['u_web_order_id']) not in sweborder:
+                                        sweborder.append(self.weborder(sub_web_id=data['u_web_order_id']))
+
+                                    # Subscriptions #
+                                    if self.weborder(sub_web_id=data['u_subscription_id']) not in ssubscription:
+                                        ssubscription.append(self.weborder(sub_web_id=data['u_subscription_id']))
+
+                                    # Covered Products #
+                                    if data['u_covered_product'] and data['u_covered_product'] not in sproducts:
+                                        sproducts.append(data['u_covered_product'])
+
+                                    # SRV_Number #
+                                    if data['number'] and data['number'] not in srv_security:
+                                        srv_security.append(data['number'])
+                                        dsm = self.getDSMs(svr_number=data['number'])
+
+                                        for j in dsm:
+                                            #print(j.get('u_technical_expert.email'))
+                                            sdsms.append(j.get('u_technical_expert.email'))
+
+                                    #customer_info = {data['customer']: info}
+                                    #accounts[data['customer']] = info
+                                    #clean_dataset.append({data['customer']: info})
+
+                                container = dict(zip(sproducts, sdsms))
+                                #print(container)
+                        info.update({'customer': cu})
+                        info['cweborder'] = list(set(sum(cweborder, [])))
+                        info['sweborder'] = list(set(sum(sweborder, [])))
+                        info['ssubscription'] = list(set(sum(ssubscription, [])))
+                        info['csubscription'] = list(set(sum(csubscription, [])))
+                        info['cproducts'] = list(set(cproducts))
+
+                        clean_dataset.append(info)
+                                    #print(time.perf_counter() - start_time, "seconds")
 
                                     # getting damn DSM 1 ### lets check how to move this block to a method
 
-                                    print(data['number'])
+                                    #for i in self.getDSMs(svr_number=data['number']):
 
-                                    for i in self.getDSMs(svr_number=data['number']):
+                                    #    print(i.get("u_role"))
 
-                                        print(i.get("u_role"))
+                                #if data['u_architecture'] == 'Security':
 
-                                        if i.get("u_role") == "TE Primary" and i.get('u_last_updated') is not None:
+                                #    print(data)
 
-                                            ultima_modificacion = i.get('u_last_updated')[:i.get('u_last_updated').index(" ")]
-                                            ultima_modificacion = datetime.datetime.strptime(ultima_modificacion, "%m/%d/%Y")
+                    #inserted_values = sum(inserted_values, [])
+                    #a= ("sobres perro: ".join(inserted_values))
 
-                                            last_updates.append(ultima_modificacion)
 
-                                    print("\nahi va la chida:\n")
 
-                                    ultima_modificacion = str(max(last_updates))
-                                    ultima_modificacion = ultima_modificacion[:ultima_modificacion.index(" ")]
-                                    ultima_modificacion = datetime.datetime.strptime(ultima_modificacion, "%Y-%m-%d")
-                                    ultima_modificacion = ('{0}/{1}/{2}'.format(ultima_modificacion.month, ultima_modificacion.day, ultima_modificacion.year))
-
-                                    print(ultima_modificacion)
-
-                                    for i in self.getDSMs(svr_number=data['number']):
-
-                                        if i.get('u_last_updated') is not None and i.get('u_last_updated').find(ultima_modificacion) == True:
-
-                                            #print(i.get("u_technical_expert"))
-
-                                            if i.get('u_role'):# and i.get('u_role') == "TE Primary":
-
-                                                print(i.get("u_technical_expert.email"))
-
-                return "simon"
+                    return clean_dataset
 
 dsmlookup = newDSMlookup()
 
 print(dsmlookup.chorus(account_name="t-mobile"))
 print("\n\n")
 print(time.perf_counter() - start_time, "seconds")
+
+
+
+
+
 
