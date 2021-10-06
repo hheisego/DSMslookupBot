@@ -40,15 +40,15 @@ class newDSMlookup:
     def weborder(self, sub_web_id):
 
         #reg = re.compile(pattern=r"(\d{8})")
-        reg = re.compile(pattern=r"(Sub\d{6}|\d{8})")
+        reg = re.compile(pattern=r"(Sub\d{6}|\d{8}|\d{9})")
         result = re.findall(reg, str(sub_web_id))
 
         return result
 
     def chorus(self, account_name):
 
-        #previous query parameters: "%2Cu_record_number%2cu_cs_case_owner%2cu_offer_name%2Ccustomer%2cu_order_status%2cu_order_substatus%2cu_offer_type%2Cu_te_primary%2Cu_te_primary.email%2Cu_te_secondary%2Cu_te_secondary.email%2Cu_te_tertiary%2Cu_te_tertiary.email%2Cu_contract_number%2Cu_contract_term%2Cu_service_start_date%2Cu_service_end_date%2Cu_subscription_id%2Cu_web_order_id%2Cu_architecture%2Cu_covered_products%2Cu_covered_product%2Cu_product_status&sysparm_query=customerLIKE"
-        final_url = fixed_url + "%2Cu_record_number%2cu_cs_case_owner%2cu_offer_name%2Ccustomer%2cu_order_status%2cu_order_substatus%2cu_offer_type%2Cu_contract_number%2Cu_contract_term%2Cu_service_start_date%2Cu_service_end_date%2Cu_subscription_id%2Cu_web_order_id%2Cu_architecture%2Cu_covered_products%2Cu_covered_product%2Cu_product_status&sysparm_query=customerLIKE" + account_name #+ '^u_order_status!=Expired^u_order_sub_status!=Inactive'  #"  # ^u_order_substatus!=Expired"
+        #previous query parameters: %2Cu_contract_term "%2Cu_record_number%2cu_cs_case_owner%2cu_offer_name%2Ccustomer%2cu_order_status%2cu_order_substatus%2cu_offer_type%2Cu_te_primary%2Cu_te_primary.email%2Cu_te_secondary%2Cu_te_secondary.email%2Cu_te_tertiary%2Cu_te_tertiary.email%2Cu_contract_number%2Cu_contract_term%2Cu_service_start_date%2Cu_service_end_date%2Cu_subscription_id%2Cu_web_order_id%2Cu_architecture%2Cu_covered_products%2Cu_covered_product%2Cu_product_status&sysparm_query=customerLIKE"
+        final_url = fixed_url + "%2Cparent_contract%2Cu_record_number%2cu_cs_case_owner%2cu_offer_name%2Ccustomer%2cu_order_status%2cu_order_substatus%2cu_offer_type%2Cu_contract_number%2Cu_service_start_date%2Cu_service_end_date%2Cu_subscription_id%2Cu_web_order_id%2Cu_architecture%2Cu_covered_products%2Cu_covered_product%2Cu_product_status&sysparm_query=customerLIKE" + account_name #+ '^u_order_status!=Expired^u_order_sub_status!=Inactive'  #"  # ^u_order_substatus!=Expired"
 
         # Do the HTTP request
         expert = requests.get(final_url, auth=(user, pwd), headers=self.headers)
@@ -124,11 +124,13 @@ class newDSMlookup:
                         sproducts = []
                         srv_security = []
                         sdsms = []
-                        csstart = []
+                        ccontract = []
 
                         for data in expert:
 
                             if cu == data['customer']:
+
+                                info.update({'customer': cu})
 
                                 if data['u_architecture'] == 'Collaboration':
 
@@ -140,17 +142,21 @@ class newDSMlookup:
                                     if self.weborder(sub_web_id=data['u_subscription_id']) not in csubscription:
                                         csubscription.append(self.weborder(sub_web_id=data['u_subscription_id']))
 
-                                    # Covered Products #
-                                    if data['u_covered_products'] and data['u_covered_products'] not in cproducts:
-                                        cproducts.append(data['u_covered_products'])
+                                    # Contracts #
+                                    if self.weborder(sub_web_id=data['u_contract_number']) not in ccontract:
+                                        ccontract.append(self.weborder(sub_web_id=data['u_contract_number']))
 
-                                    elif data['u_covered_product'] and data['u_covered_product'] not in cproducts:
-                                        cproducts.append(data['u_covered_product'])
 
-                                    if data['u_service_start_date'] and data['u_service_start_date'] not in csstart:
-                                        csstart.append(data['u_service_start_date'])
+                                    info['c_service_start'] = data['u_service_start_date']
+                                    info['c_service_end'] = data['u_service_end_date']
+                                    info['c_offer_type'] = data['u_offer_type']
+                                    info['c_offer_name'] = data['u_offer_name']
+                                    info['cproducts'] = data['u_covered_products']
+                                    info['ccontracts'] = list(set(sum(ccontract, [])))
+                                    info['csubscription'] = list(set(sum(csubscription, [])))
+                                    info['cweborder'] = list(set(sum(cweborder, [])))
 
-                                        print(data['u_service_start_date'])
+
 
                                     #collab['weborders'] = inserted_values
 
@@ -164,7 +170,7 @@ class newDSMlookup:
                                         #inserted_values = inserted_values + self.weborder(weborderid=data['u_web_order_id'])
                                         #inserted_values.append(self.weborder(weborderid=data['u_web_order_id']))
 
-                                elif data['u_architecture'] == 'Security':
+                                elif data['u_architecture'] == 'Security' and data['parent_contract'] is not None:
 
                                     # Web Order ID #
                                     if self.weborder(sub_web_id=data['u_web_order_id']) not in sweborder:
@@ -181,24 +187,23 @@ class newDSMlookup:
                                     # SRV_Number #
                                     if data['number'] and data['number'] not in srv_security:
                                         srv_security.append(data['number'])
+
                                         dsm = self.getDSMs(svr_number=data['number'])
 
                                         for j in dsm:
-                                            #print(j.get('u_technical_expert.email'))
+                                            print(j.get('u_technical_expert.email'))
                                             sdsms.append(j.get('u_technical_expert.email'))
+
+                                    info['sweborder'] = list(set(sum(sweborder, [])))
+                                    info['ssubscription'] = list(set(sum(ssubscription, [])))
 
                                     #customer_info = {data['customer']: info}
                                     #accounts[data['customer']] = info
                                     #clean_dataset.append({data['customer']: info})
 
-                                container = dict(zip(sproducts, sdsms))
+                                #container = dict(zip(srv_security, sproducts))
                                 #print(container)
-                        info.update({'customer': cu})
-                        info['cweborder'] = list(set(sum(cweborder, [])))
-                        info['sweborder'] = list(set(sum(sweborder, [])))
-                        info['ssubscription'] = list(set(sum(ssubscription, [])))
-                        info['csubscription'] = list(set(sum(csubscription, [])))
-                        info['cproducts'] = list(set(cproducts))
+
 
                         clean_dataset.append(info)
                                     #print(time.perf_counter() - start_time, "seconds")
@@ -222,7 +227,7 @@ class newDSMlookup:
 
 dsmlookup = newDSMlookup()
 
-print(dsmlookup.chorus(account_name="t-mobile"))
+print(dsmlookup.chorus(account_name="navy"))
 print("\n\n")
 print(time.perf_counter() - start_time, "seconds")
 
