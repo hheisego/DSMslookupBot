@@ -125,6 +125,7 @@ class newDSMlookup:
                         sdsms = {}
                         ccontract = []
                         scontract = []
+                        scounter = 0
 
                         for data in expert:
 
@@ -192,21 +193,35 @@ class newDSMlookup:
                                     if self.weborder(sub_web_id=data['u_contract_number']) not in scontract:
                                         scontract.append(self.weborder(sub_web_id=data['u_contract_number']))
 
-                                    dsm = self.getDSMs(svr_number=data['number'])
+                                    #dsm = self.getDSMs(svr_number=data['number'])
 
-                                    for j in dsm:
+                                    #for j in dsm:
 
-                                        sdsms['coverage'] = {j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + j.get('u_technical_expert.name') + ' ' + j.get('u_technical_expert.email')}
+                                    #    sdsms['coverage'] = {j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + j.get('u_technical_expert.name') + ' ' + j.get('u_technical_expert.email')}
 
-                                        if j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + j.get('u_technical_expert.name') + ' ' + j.get('u_technical_expert.email') not in inserted_values:
-                                            inserted_values.append(j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + j.get('u_technical_expert.name') + ' ' + j.get('u_technical_expert.email'))
+                                    #    if j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + j.get('u_technical_expert.name') + ' ' + j.get('u_technical_expert.email') not in inserted_values:
+                                    #        inserted_values.append(j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + j.get('u_technical_expert.name') + ' ' + j.get('u_technical_expert.email'))
 
-                                    info['sdsms'] = inserted_values
-                                    svr2product = dict(zip(srv_security, sproducts))
-                                    info['sweborder'] = list(set(sum(sweborder, [])))
-                                    info['ssubscription'] = list(set(sum(ssubscription, [])))
-                                    info['scontracts'] = list(set(sum(scontract, [])))
-                                    info['sproducts'] = svr2product
+                                    #print(len(data['u_architecture']))
+                                    print(scounter)
+
+
+                                    if scounter == len(data['u_architecture']):
+
+                                        print("ora putos")
+                                        info['sdsms'] = inserted_values
+                                        svr2product = dict(zip(srv_security, sproducts))
+                                        info['sweborder'] = list(set(sum(sweborder, [])))
+                                        info['ssubscription'] = list(set(sum(ssubscription, [])))
+                                        info['scontracts'] = list(set(sum(scontract, [])))
+                                        info['sproducts'] = svr2product
+
+                                        scounter = 1
+
+                                    scounter += 1
+
+
+
                                      #   print(time.perf_counter() - start_time, "seconds")
 
                                 #container = dict(zip(srv_security, sproducts))
