@@ -120,11 +120,11 @@ class newDSMlookup:
                         ssubscription = []
                         sweborder = []
                         cweborder = []
-                        cproducts = []
                         sproducts = []
                         srv_security = []
-                        sdsms = []
+                        sdsms = {}
                         ccontract = []
+                        scontract = []
 
                         for data in expert:
 
@@ -188,35 +188,31 @@ class newDSMlookup:
                                     if data['number'] and data['number'] not in srv_security:
                                         srv_security.append(data['number'])
 
-                                        dsm = self.getDSMs(svr_number=data['number'])
+                                    # Contracts #
+                                    if self.weborder(sub_web_id=data['u_contract_number']) not in scontract:
+                                        scontract.append(self.weborder(sub_web_id=data['u_contract_number']))
 
-                                        for j in dsm:
-                                            print(j.get('u_technical_expert.email'))
-                                            sdsms.append(j.get('u_technical_expert.email'))
+                                    dsm = self.getDSMs(svr_number=data['number'])
 
+                                    for j in dsm:
+
+                                        sdsms['coverage'] = {j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + j.get('u_technical_expert.name') + ' ' + j.get('u_technical_expert.email')}
+
+                                        if j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + j.get('u_technical_expert.name') + ' ' + j.get('u_technical_expert.email') not in inserted_values:
+                                            inserted_values.append(j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + j.get('u_technical_expert.name') + ' ' + j.get('u_technical_expert.email'))
+
+                                    info['sdsms'] = inserted_values
+                                    svr2product = dict(zip(srv_security, sproducts))
                                     info['sweborder'] = list(set(sum(sweborder, [])))
                                     info['ssubscription'] = list(set(sum(ssubscription, [])))
-
-                                    #customer_info = {data['customer']: info}
-                                    #accounts[data['customer']] = info
-                                    #clean_dataset.append({data['customer']: info})
+                                    info['scontracts'] = list(set(sum(scontract, [])))
+                                    info['sproducts'] = svr2product
+                                     #   print(time.perf_counter() - start_time, "seconds")
 
                                 #container = dict(zip(srv_security, sproducts))
                                 #print(container)
 
-
                         clean_dataset.append(info)
-                                    #print(time.perf_counter() - start_time, "seconds")
-
-                                    # getting damn DSM 1 ### lets check how to move this block to a method
-
-                                    #for i in self.getDSMs(svr_number=data['number']):
-
-                                    #    print(i.get("u_role"))
-
-                                #if data['u_architecture'] == 'Security':
-
-                                #    print(data)
 
                     #inserted_values = sum(inserted_values, [])
                     #a= ("sobres perro: ".join(inserted_values))
