@@ -33,9 +33,18 @@ class newDSMlookup:
 
         final_url = svr_url + svr_number + '^u_end_date=^u_role!='
 
-        dsm = requests.get(final_url, auth=(user, pwd), headers=self.headers).json()["result"]
+        try:
+            dsm = requests.get(final_url, auth=(user, pwd), headers=self.headers).json()["result"]
 
-        return dsm
+            return dsm
+
+        except:
+
+            dsm = [{'u_technical_expert.name': 'Try Again', 'u_role': 'could not', 'u_technical_expert.user_name': 'fetch details'}]
+
+            print("vuelve a intentar en unos segundos")
+
+            return dsm
 
     def weborder(self, sub_web_id):
 
@@ -109,12 +118,13 @@ class newDSMlookup:
                 else:
 
                     customer = list(set(debug['customer'] for debug in expert))
-
+                    final_output = ''
                     clean_dataset = []
-                    print(expert)
+                    #print(expert)
                     for cu in customer:
 
                         inserted_values = []
+                        collab_coverage = []
                         info = {}
                         csubscription = []
                         ssubscription = []
@@ -123,12 +133,14 @@ class newDSMlookup:
                         sproducts = []
                         srv_security = []
                         sdsms = {}
+                        cdsms = {}
                         ccontract = []
                         scontract = []
-                        scounter = 0
+                        spas = []
+                        #scounter = 1
 
                         for data in expert:
-
+                            print(data)
                             if cu == data['customer']:
 
                                 info.update({'customer': cu})
@@ -147,29 +159,31 @@ class newDSMlookup:
                                     if self.weborder(sub_web_id=data['u_contract_number']) not in ccontract:
                                         ccontract.append(self.weborder(sub_web_id=data['u_contract_number']))
 
-
                                     info['c_service_start'] = data['u_service_start_date']
                                     info['c_service_end'] = data['u_service_end_date']
                                     info['c_offer_type'] = data['u_offer_type']
                                     info['c_offer_name'] = data['u_offer_name']
-                                    info['cproducts'] = data['u_covered_products']
-                                    info['ccontracts'] = list(set(sum(ccontract, [])))
-                                    info['csubscription'] = list(set(sum(csubscription, [])))
-                                    info['cweborder'] = list(set(sum(cweborder, [])))
+                                    info['c_covered_products'] = data['u_covered_products']
+                                    info['cpas'] = data['u_cs_case_owner']
 
+                                    # GET DSMS block #
+                                    dsm = self.getDSMs(svr_number=data['number'])
 
+                                    for j in dsm:
 
-                                    #collab['weborders'] = inserted_values
+                                        if j.get('u_technical_expert.name') and j.get('u_technical_expert.user_name'):
 
-                                    #info[data['u_architecture']] = collab
+                                            collab_dsm = j.get('u_technical_expert.name') + ' (' + j.get('u_technical_expert.user_name') + ')'
 
-                                        #print("collab")
+                                        else:
 
+                                           collab_dsm = " N/A "
 
-                                        #print(result)
+                                        # print(j.get('u_role') + ' ' + data['u_covered_product'] + ' ' + j.get('u_technical_expert.name') + ' ' + j.get('u_technical_expert.user_name'))
+                                        cdsms['coverage'] = {j.get('u_role') + ': ' + collab_dsm}
 
-                                        #inserted_values = inserted_values + self.weborder(weborderid=data['u_web_order_id'])
-                                        #inserted_values.append(self.weborder(weborderid=data['u_web_order_id']))
+                                        if j.get('u_role') + ': ' + collab_dsm not in collab_coverage:
+                                            collab_coverage.append(j.get('u_role') + ': ' + collab_dsm)
 
                                 elif data['u_architecture'] == 'Security' and data['parent_contract'] is not None:
 
@@ -193,52 +207,136 @@ class newDSMlookup:
                                     if self.weborder(sub_web_id=data['u_contract_number']) not in scontract:
                                         scontract.append(self.weborder(sub_web_id=data['u_contract_number']))
 
-                                    #dsm = self.getDSMs(svr_number=data['number'])
+                                    # PAS / SOM #
+                                    if data['u_cs_case_owner'] and data['u_cs_case_owner'] not in spas:
+                                        spas.append(data['u_cs_case_owner'])
 
-                                    #for j in dsm:
+                                    info['s_offer_name'] = data['u_offer_name'] # each product has different this should be on the dsms block
 
-                                    #    sdsms['coverage'] = {j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + j.get('u_technical_expert.name') + ' ' + j.get('u_technical_expert.email')}
+                                    # GET DSMS block #
+                                    dsm = self.getDSMs(svr_number=data['number'])
 
-                                    #    if j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + j.get('u_technical_expert.name') + ' ' + j.get('u_technical_expert.email') not in inserted_values:
-                                    #        inserted_values.append(j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + j.get('u_technical_expert.name') + ' ' + j.get('u_technical_expert.email'))
+                                    for j in dsm:
+                                        off_name = '_(N/A)_'
 
-                                    #print(len(data['u_architecture']))
-                                    print(scounter)
+                                        if data['u_offer_name'] and 'Premium' in data['u_offer_name']:
 
+                                            off_name = '_(P)_'
 
-                                    if scounter == len(data['u_architecture']):
+                                        elif data['u_offer_name'] and 'Enhance' in data['u_offer_name']:
 
-                                        print("ora putos")
-                                        info['sdsms'] = inserted_values
-                                        svr2product = dict(zip(srv_security, sproducts))
-                                        info['sweborder'] = list(set(sum(sweborder, [])))
-                                        info['ssubscription'] = list(set(sum(ssubscription, [])))
-                                        info['scontracts'] = list(set(sum(scontract, [])))
-                                        info['sproducts'] = svr2product
+                                            off_name = '_(E)_'
 
-                                        scounter = 1
+                                        if j.get('u_technical_expert.name') and j.get('u_technical_expert.user_name'):
 
-                                    scounter += 1
+                                            security_dsm = j.get('u_technical_expert.name') + ' (' + j.get('u_technical_expert.user_name') + ')' + ' ' + off_name
 
+                                        else:
 
+                                            security_dsm = " N/A "
 
-                                     #   print(time.perf_counter() - start_time, "seconds")
+                                        #print(j.get('u_role') + ' ' + data['u_covered_product'] + ' ' + j.get('u_technical_expert.name') + ' ' + j.get('u_technical_expert.user_name'))
+                                        sdsms['coverage'] = {j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + security_dsm}
 
-                                #container = dict(zip(srv_security, sproducts))
-                                #print(container)
+                                        if j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + security_dsm not in inserted_values:
+
+                                            inserted_values.append(j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + security_dsm)
+
+                                #elif data['u_architecture'] == 'Security' and data['parent_contract'] is None:
+
+                                    info['s_service_start'] = data['u_service_start_date']
+                                    info['s_service_end'] = data['u_service_end_date']
+                                    info['s_offer_type'] = data['u_offer_type']
+
+                                    #if scounter == len(data['u_architecture']):
+                        if sweborder or ssubscription or scontract:
+
+                            info['sdsms'] = inserted_values
+                            #svr2product = dict(zip(srv_security, sproducts))
+                            info['sweborder'] = list(set(sum(sweborder, [])))
+                            info['ssubscription'] = list(set(sum(ssubscription, [])))
+                            info['scontracts'] = list(set(sum(scontract, [])))
+                            info['spas'] = (", ".join(spas))
+                            #info['sproducts'] = svr2product
+
+                        if ccontract or csubscription or cweborder:
+
+                            info['cdsms'] = collab_coverage
+                            info['ccontracts'] = list(set(sum(ccontract, [])))
+                            info['csubscription'] = list(set(sum(csubscription, [])))
+                            info['cweborder'] = list(set(sum(cweborder, [])))
 
                         clean_dataset.append(info)
 
-                    #inserted_values = sum(inserted_values, [])
-                    #a= ("sobres perro: ".join(inserted_values))
+                    # result block the output#
+                    print(clean_dataset)
+                    for each in clean_dataset:
 
+                        final_output += '--------------------\nAccount: ' + each['customer']
 
+                        if each.get('ccontracts') or each.get('csubscription') or each.get('cweborder') or each.get('c_offer_name'):
 
-                    return clean_dataset
+                            final_output += '\n\nCollaboration:\n'
+
+                            for tes in each['cdsms']:
+                                final_output += '\n' + tes
+
+                            if each['cpas']:
+                                final_output += '\nPAS: ' + each['cpas']
+
+                            if each['c_covered_products']:
+                                final_output += '\nCovered Product(s): ' + each['c_covered_products'].replace("Webex",
+                                                                                                              "WBX")
+
+                            if each['c_offer_name'] and each['c_offer_type']:
+                                final_output += '\nOffer: ' + each['c_offer_name'] + ' ' + each['c_offer_type']
+
+                            if each['cweborder']:
+                                final_output += '\nWeb Order(s): ' + (", ".join(each['cweborder']))
+
+                            if each['csubscription']:
+                                final_output += '\nSubcription(s): ' + (", ".join(each['csubscription']))
+
+                            if each['ccontracts']:
+                                final_output += '\nContract(s): ' + (", ".join(each['ccontracts']))
+
+                            if each['c_service_start'] and each['c_service_end']:
+                                final_output += '\nService Duration: ' + each['c_service_start'] + ' - ' + each[
+                                    'c_service_end'] + ' -> Days Left: ' + self.expiryChecker(contractExp=each['c_service_end'])
+
+                        if each.get('scontracts') or each.get('ssubscription') or each.get('sweborder'):
+
+                            final_output += '\n\nSecurity:\n'
+
+                            for tes in each['sdsms']:
+                                final_output += '\n' + tes
+
+                            if each['spas']:
+                                final_output += '\nPAS: ' + each['spas']
+
+                            if each['s_offer_name'] and each['s_offer_type']:
+                                final_output += '\nOffer: ' + each['s_offer_name'] + ' ' + each['s_offer_type']
+
+                            if each['sweborder']:
+                                final_output += '\nWeb Order(s): ' + (", ".join(each['sweborder']))
+
+                            if each['ssubscription']:
+                                final_output += '\nSubcription(s): ' + (", ".join(each['ssubscription']))
+
+                            if each['scontracts']:
+                                final_output += '\nContract(s): ' + (", ".join(each['scontracts']))
+
+                            if each['s_service_start'] and each['s_service_end']:
+                                final_output += '\nService Duration: ' + each['s_service_start'] + ' - ' + each[
+                                    's_service_end'] + ' -> Days Left: ' + self.expiryChecker(contractExp=each['s_service_end'])
+
+                        final_output += '\n--------------------\n'
+
+                    return final_output
 
 dsmlookup = newDSMlookup()
 
-print(dsmlookup.chorus(account_name="navy"))
+print(dsmlookup.chorus(account_name="metlife"))
 print("\n\n")
 print(time.perf_counter() - start_time, "seconds")
 
