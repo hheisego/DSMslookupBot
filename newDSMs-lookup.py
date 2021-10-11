@@ -126,21 +126,23 @@ class newDSMlookup:
                         inserted_values = []
                         collab_coverage = []
                         info = {}
+                        sdsms = {}
+                        cdsms = {}
                         csubscription = []
                         ssubscription = []
                         sweborder = []
                         cweborder = []
                         sproducts = []
                         srv_security = []
-                        sdsms = {}
-                        cdsms = {}
+
                         ccontract = []
                         scontract = []
                         spas = []
+                        cproducts = []
                         #scounter = 1
 
                         for data in expert:
-                            print(data)
+
                             if cu == data['customer']:
 
                                 info.update({'customer': cu})
@@ -159,12 +161,18 @@ class newDSMlookup:
                                     if self.weborder(sub_web_id=data['u_contract_number']) not in ccontract:
                                         ccontract.append(self.weborder(sub_web_id=data['u_contract_number']))
 
+                                    # Check for contact center portion #
+                                    print(data['u_covered_products'])
+
                                     info['c_service_start'] = data['u_service_start_date']
                                     info['c_service_end'] = data['u_service_end_date']
                                     info['c_offer_type'] = data['u_offer_type']
                                     info['c_offer_name'] = data['u_offer_name']
                                     info['c_covered_products'] = data['u_covered_products']
                                     info['cpas'] = data['u_cs_case_owner']
+
+                                    if data['u_covered_product']:
+                                        print(data['u_covered_product'])
 
                                     # GET DSMS block #
                                     dsm = self.getDSMs(svr_number=data['number'])
@@ -285,8 +293,7 @@ class newDSMlookup:
                                 final_output += '\nPAS: ' + each['cpas']
 
                             if each['c_covered_products']:
-                                final_output += '\nCovered Product(s): ' + each['c_covered_products'].replace("Webex",
-                                                                                                              "WBX")
+                                final_output += '\nCovered Product(s): ' + each['c_covered_products'].replace("Webex", "WBX")
 
                             if each['c_offer_name'] and each['c_offer_type']:
                                 final_output += '\nOffer: ' + each['c_offer_name'] + ' ' + each['c_offer_type']
@@ -301,8 +308,7 @@ class newDSMlookup:
                                 final_output += '\nContract(s): ' + (", ".join(each['ccontracts']))
 
                             if each['c_service_start'] and each['c_service_end']:
-                                final_output += '\nService Duration: ' + each['c_service_start'] + ' - ' + each[
-                                    'c_service_end'] + ' -> Days Left: ' + self.expiryChecker(contractExp=each['c_service_end'])
+                                final_output += '\nService Duration: ' + each['c_service_start'] + ' - ' + each['c_service_end'] + ' -> Days Left: ' + self.expiryChecker(contractExp=each['c_service_end'])
 
                         if each.get('scontracts') or each.get('ssubscription') or each.get('sweborder'):
 
@@ -327,16 +333,15 @@ class newDSMlookup:
                                 final_output += '\nContract(s): ' + (", ".join(each['scontracts']))
 
                             if each['s_service_start'] and each['s_service_end']:
-                                final_output += '\nService Duration: ' + each['s_service_start'] + ' - ' + each[
-                                    's_service_end'] + ' -> Days Left: ' + self.expiryChecker(contractExp=each['s_service_end'])
+                                final_output += '\nService Duration: ' + each['s_service_start'] + ' - ' + each['s_service_end'] + ' -> Days Left: ' + self.expiryChecker(contractExp=each['s_service_end'])
 
-                        final_output += '\n--------------------\n'
+                        final_output += '\n--------------------'
 
                     return final_output
 
 dsmlookup = newDSMlookup()
 
-print(dsmlookup.chorus(account_name="metlife"))
+print(dsmlookup.chorus(account_name="farmers insurance"))
 print("\n\n")
 print(time.perf_counter() - start_time, "seconds")
 
