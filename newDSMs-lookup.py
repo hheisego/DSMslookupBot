@@ -124,22 +124,22 @@ class newDSMlookup:
                     for cu in customer:
 
                         inserted_values = []
-                        collab_coverage = []
+                        #collab_coverage = []
                         info = {}
                         sdsms = {}
-                        cdsms = {}
+                        #cdsms = {}
+                        #cproducts = []
                         csubscription = []
+                        cweborder = []
+                        ccontract = []
                         ssubscription = []
                         sweborder = []
-                        cweborder = []
                         sproducts = []
                         srv_security = []
-
-                        ccontract = []
                         scontract = []
                         spas = []
-                        cproducts = []
                         #scounter = 1
+                        collab_cover = ''
 
                         for data in expert:
 
@@ -161,37 +161,42 @@ class newDSMlookup:
                                     if self.weborder(sub_web_id=data['u_contract_number']) not in ccontract:
                                         ccontract.append(self.weborder(sub_web_id=data['u_contract_number']))
 
-                                    # Check for contact center portion #
-                                    print(data['u_covered_products'])
-
                                     info['c_service_start'] = data['u_service_start_date']
                                     info['c_service_end'] = data['u_service_end_date']
-                                    info['c_offer_type'] = data['u_offer_type']
-                                    info['c_offer_name'] = data['u_offer_name']
-                                    info['c_covered_products'] = data['u_covered_products']
+                                    #info['c_offer_type'] = data['u_offer_type']
+                                    #info['c_offer_name'] = data['u_offer_name']
+                                    #info['c_covered_products'] = data['u_covered_products']
                                     info['cpas'] = data['u_cs_case_owner']
 
-                                    if data['u_covered_product']:
-                                        print(data['u_covered_product'])
+                                    #if data['u_covered_product']:
+
+                                    #    print(data['u_covered_product'])
 
                                     # GET DSMS block #
-                                    dsm = self.getDSMs(svr_number=data['number'])
+                                    #dsm = self.getDSMs(svr_number=data['number'])
 
-                                    for j in dsm:
+                                    collab_dsm = ''
+                                    for j in self.getDSMs(svr_number=data['number']):
 
                                         if j.get('u_technical_expert.name') and j.get('u_technical_expert.user_name'):
 
-                                            collab_dsm = j.get('u_technical_expert.name') + ' (' + j.get('u_technical_expert.user_name') + ')'
+                                            collab_dsm += '\n' + j.get('u_role') + ': ' + j.get('u_technical_expert.name') + ' (' + j.get('u_technical_expert.user_name') + ')'
 
                                         else:
 
-                                           collab_dsm = " N/A "
+                                           collab_dsm = "Solution Support does not include DSM's"
 
                                         # print(j.get('u_role') + ' ' + data['u_covered_product'] + ' ' + j.get('u_technical_expert.name') + ' ' + j.get('u_technical_expert.user_name'))
-                                        cdsms['coverage'] = {j.get('u_role') + ': ' + collab_dsm}
+                                        # cdsms['coverage'] = {j.get('u_role') + ': ' + collab_dsm}
 
-                                        if j.get('u_role') + ': ' + collab_dsm not in collab_coverage:
-                                            collab_coverage.append(j.get('u_role') + ': ' + collab_dsm)
+                                        #if j.get('u_role') + ': ' + collab_dsm not in collab_coverage:
+                                            #collab_coverage.append(j.get('u_role') + ': ' + collab_dsm)
+
+                                    # Get Contact Center info if exists #
+
+                                    if data['u_covered_products']:
+                                        #print(data['u_covered_products'])
+                                        collab_cover += collab_dsm + '\nCovered Product(s):' + data['u_covered_products'].replace("Webex", "WBX") + '\nOffer: ' + data['u_offer_name'] + ' ' + data['u_offer_type']
 
                                 elif data['u_architecture'] == 'Security' and data['parent_contract'] is not None:
 
@@ -221,7 +226,7 @@ class newDSMlookup:
 
                                     info['s_offer_name'] = data['u_offer_name'] # each product has different this should be on the dsms block
 
-                                    # GET DSMS block #
+                                    # GET DSMS block for Security #
                                     dsm = self.getDSMs(svr_number=data['number'])
 
                                     for j in dsm:
@@ -269,7 +274,7 @@ class newDSMlookup:
 
                         if ccontract or csubscription or cweborder:
 
-                            info['cdsms'] = collab_coverage
+                            #info['cdsms'] = collab_coverage
                             info['ccontracts'] = list(set(sum(ccontract, [])))
                             info['csubscription'] = list(set(sum(csubscription, [])))
                             info['cweborder'] = list(set(sum(cweborder, [])))
@@ -286,17 +291,21 @@ class newDSMlookup:
 
                             final_output += '\n\nCollaboration:\n'
 
-                            for tes in each['cdsms']:
-                                final_output += '\n' + tes
+                            if collab_cover:
+
+                                final_output += collab_cover
+
+                            #for tes in each['cdsms']:
+                            #    final_output += '\n' + tes
 
                             if each['cpas']:
                                 final_output += '\nPAS: ' + each['cpas']
 
-                            if each['c_covered_products']:
-                                final_output += '\nCovered Product(s): ' + each['c_covered_products'].replace("Webex", "WBX")
+                            #if each['c_covered_products']:
+                                #final_output += '\nCovered Product(s): ' + each['c_covered_products'].replace("Webex", "WBX")
 
-                            if each['c_offer_name'] and each['c_offer_type']:
-                                final_output += '\nOffer: ' + each['c_offer_name'] + ' ' + each['c_offer_type']
+                            #if each['c_offer_name'] and each['c_offer_type']:
+                                #final_output += '\nOffer: ' + each['c_offer_name'] + ' ' + each['c_offer_type']
 
                             if each['cweborder']:
                                 final_output += '\nWeb Order(s): ' + (", ".join(each['cweborder']))
@@ -341,7 +350,7 @@ class newDSMlookup:
 
 dsmlookup = newDSMlookup()
 
-print(dsmlookup.chorus(account_name="farmers insurance"))
+print(dsmlookup.chorus(account_name="popular"))
 print("\n\n")
 print(time.perf_counter() - start_time, "seconds")
 
