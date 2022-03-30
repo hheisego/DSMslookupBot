@@ -49,7 +49,7 @@ class newDSMlookup:
     def weborder(self, sub_web_id):
 
         #reg = re.compile(pattern=r"(\d{8})")
-        reg = re.compile(pattern=r"(Sub\d{6}|\d{8}|\d{9})")
+        reg = re.compile(pattern=r"(Sub\d{6}|\d{9}|\d{8})")# changed the order and it works
         result = re.findall(reg, str(sub_web_id))
 
         return result
@@ -91,6 +91,35 @@ class newDSMlookup:
 
                         status += "No Expired Orders, "
 
+                    # new block 26/oct/21/ #
+
+                    try:
+
+                        if expert[i]['u_order_substatus'] == 'converted_to_paid' and expert[i]['u_order_status'] == 'Expired':
+
+                            del expert[i]
+                            status += " || Many Expired Orders || "
+
+                        elif expert[i]['u_order_substatus'] == 'renewed' and expert[i]['u_order_status'] == 'Expired':
+
+                            del expert[i]
+                            status += " || Many Expired Orders || "
+
+                        elif expert[i]['u_order_substatus'] == 'expired' and expert[i]['u_order_status'] == 'Expired':
+
+                            del expert[i]
+                            status += " || Many Expired Orders || "
+
+                        elif expert[i]['u_order_substatus'] == 'Pending Contract' and expert[i]['u_order_status'] == 'Open':
+
+                            del expert[i]
+
+                    except:
+
+                        status += "Few Expired Orders, "
+
+                    # end of the block #
+
                     try:
 
                         if expert[i]['u_order_status'] == 'Cancelled':
@@ -120,7 +149,7 @@ class newDSMlookup:
                     customer = list(set(debug['customer'] for debug in expert))
                     final_output = ''
                     clean_dataset = []
-                    #print(expert)
+
                     for cu in customer:
 
                         inserted_values = []
@@ -140,7 +169,7 @@ class newDSMlookup:
                         spas = []
                         #scounter = 1
                         collab_cover = ''
-
+                        print(expert)
                         for data in expert:
 
                             if cu == data['customer']:
@@ -175,11 +204,12 @@ class newDSMlookup:
                                     collab_dsm = ''
 
                                     if not dsm:
-                                        collab_dsm += 'No DSMs assigned yet'
+
+                                        collab_dsm += '\nNo DSMs assigned yet'
 
                                     else:
 
-                                        for j in self.getDSMs(svr_number=data['number']):
+                                        for j in dsm:
 
                                             if j.get('u_technical_expert.name') and j.get('u_technical_expert.user_name'):
 
@@ -268,6 +298,7 @@ class newDSMlookup:
 
                             info['sdsms'] = inserted_values
                             #svr2product = dict(zip(srv_security, sproducts))
+                            info['sproducts'] = list(set(sproducts)) # new line 3/30/22
                             info['sweborder'] = list(set(sum(sweborder, [])))
                             info['ssubscription'] = list(set(sum(ssubscription, [])))
                             info['scontracts'] = list(set(sum(scontract, [])))
@@ -293,10 +324,6 @@ class newDSMlookup:
                         if each.get('ccontracts') or each.get('csubscription') or each.get('cweborder') or each.get('c_offer_name') or each.get('cdsms'): #added or each.get('cdsms') 10/25/21
 
                             final_output += '\n\nCollaboration:\n'
-                            #print(collab_dsm)
-                            #if collab_dsm:
-
-                                #final_output += collab_dsm
 
                             if each['cdsms']:
 
@@ -304,12 +331,6 @@ class newDSMlookup:
 
                             if each['cpas']:
                                 final_output += '\nPAS: ' + each['cpas']
-
-                            #if each['c_covered_products']:
-                                #final_output += '\nCovered Product(s): ' + each['c_covered_products'].replace("Webex", "WBX")
-
-                            #if each['c_offer_name'] and each['c_offer_type']:
-                                #final_output += '\nOffer: ' + each['c_offer_name'] + ' ' + each['c_offer_type']
 
                             if each['cweborder']:
                                 final_output += '\nWeb Order(s): ' + (", ".join(each['cweborder']))
@@ -329,6 +350,11 @@ class newDSMlookup:
 
                             for tes in each['sdsms']:
                                 final_output += '\n' + tes
+
+                            final_output += '\nCovered Products: '
+
+                            for product in each['sproducts']: #03/30/22
+                                final_output += product + ', '
 
                             if each['spas']:
                                 final_output += '\nPAS: ' + each['spas']
@@ -354,7 +380,9 @@ class newDSMlookup:
 
 dsmlookup = newDSMlookup()
 
-print(dsmlookup.chorus(account_name="Oak Hill"))
+print(dsmlookup.chorus(account_name="duane"))
+print("\n\n")
+#print(dsmlookup.chorus(account_name="HUBBARD BROADCASTING INC"))
 print("\n\n")
 print(time.perf_counter() - start_time, "seconds")
 
