@@ -10,7 +10,8 @@ from core_au import user, pwd, fixed_url, svr_url
 
 start_time = time.perf_counter()
 
-class newDSMlookup:
+class NewDSMlookup:
+
     # Set proper headers
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
@@ -31,12 +32,48 @@ class newDSMlookup:
 
     def getDSMs(self, svr_number):
 
+        svr_url = "https://cms.service-now.com/api/now/table/u_resource_utilization?sysparm_display_value=true&sysparm_fields=%2Cu_technical_expert.user_name%2Cu_role%2Cu_technical_expert.name&sysparm_query=u_record_numberSTARTSWITH"  # &sysparm_fields=%2Cu_technical_expert.email&sysparm_query=u_record_numberSTARTSWITH"
+
         final_url = svr_url + svr_number + '^u_end_date=^u_role!='
 
         try:
-            dsm = requests.get(final_url, auth=(user, pwd), headers=self.headers).json()["result"]
+
+
+                dsm = requests.get(final_url, auth=(user, pwd), headers=self.headers).json()
+
+                return dsm
+
+
+        except:
+
+            dsm = [{'u_technical_expert.name': 'Try Again', 'u_role': 'could not', 'u_technical_expert.user_name': 'fetch details'}]
+
+            print("vuelve a intentar en unos segundos")
 
             return dsm
+
+    def get_security_DSMs(self, svr_number, on_demand):
+
+
+        svr_url = "https://cms.service-now.com/api/now/table/u_resource_utilization?sysparm_display_value=true&sysparm_fields=%2Cu_technical_expert.user_name%2Cu_role%2Cu_technical_expert.name&sysparm_query=u_record_numberSTARTSWITH"  # &sysparm_fields=%2Cu_technical_expert.email&sysparm_query=u_record_numberSTARTSWITH"
+
+        final_url = svr_url + svr_number + '^u_end_date=^u_role!='
+
+        try:
+
+            if on_demand is False:
+
+                dsm = requests.get(final_url, auth=(user, pwd), headers=self.headers).json()
+
+                return dsm
+
+            elif on_demand is True:
+
+                url = "https://cms.service-now.com/api/now/table/ast_service?sysparm_display_value=true&sysparm_fields=%2Cu_te_primary&sysparm_query=number=" + svr_number
+                dsm = requests.get(url, auth=(user, pwd), headers=self.headers).json()
+                #role ={'u_role': "On-Demand"}
+                #dsm.update(role)
+                return dsm
 
         except:
 
@@ -57,7 +94,7 @@ class newDSMlookup:
     def chorus(self, account_name):
 
         #previous query parameters: %2Cu_contract_term "%2Cu_record_number%2cu_cs_case_owner%2cu_offer_name%2Ccustomer%2cu_order_status%2cu_order_substatus%2cu_offer_type%2Cu_te_primary%2Cu_te_primary.email%2Cu_te_secondary%2Cu_te_secondary.email%2Cu_te_tertiary%2Cu_te_tertiary.email%2Cu_contract_number%2Cu_contract_term%2Cu_service_start_date%2Cu_service_end_date%2Cu_subscription_id%2Cu_web_order_id%2Cu_architecture%2Cu_covered_products%2Cu_covered_product%2Cu_product_status&sysparm_query=customerLIKE"
-        final_url = fixed_url + "%2Cparent_contract%2Cu_record_number%2cu_cs_case_owner%2cu_offer_name%2Ccustomer%2cu_order_status%2cu_order_substatus%2cu_offer_type%2Cu_contract_number%2Cu_service_start_date%2Cu_service_end_date%2Cu_subscription_id%2Cu_web_order_id%2Cu_architecture%2Cu_covered_products%2Cu_covered_product%2Cu_product_status&sysparm_query=customerLIKE" + account_name #+ '^u_order_status!=Expired^u_order_sub_status!=Inactive'  #"  # ^u_order_substatus!=Expired"
+        final_url = fixed_url + "%2Cu_te_primary%2Cu_support_model%2Cparent_contract%2Cu_record_number%2cu_cs_case_owner%2cu_offer_name%2Ccustomer%2cu_order_status%2cu_order_substatus%2cu_offer_type%2Cu_contract_number%2Cu_service_start_date%2Cu_service_end_date%2Cu_subscription_id%2Cu_web_order_id%2Cu_architecture%2Cu_covered_products%2Cu_covered_product%2Cu_product_status&sysparm_query=customerLIKE" + account_name #+ '^u_order_status!=Expired^u_order_sub_status!=Inactive'  #"  # ^u_order_substatus!=Expired"
 
         # Do the HTTP request
         expert = requests.get(final_url, auth=(user, pwd), headers=self.headers)
@@ -84,6 +121,7 @@ class newDSMlookup:
                     try:
 
                         if expert[i]['u_order_status'] == 'Expired':
+
                             del expert[i]
                             status += " || Expired Contract || "
 
@@ -98,19 +136,35 @@ class newDSMlookup:
                         if expert[i]['u_order_substatus'] == 'converted_to_paid' and expert[i]['u_order_status'] == 'Expired':
 
                             del expert[i]
-                            status += " || Many Expired Orders || "
 
-                        elif expert[i]['u_order_substatus'] == 'renewed' and expert[i]['u_order_status'] == 'Expired':
+
+                    except:
+
+                        status += " || Many Expired Orders || "
+
+                    try:
+
+                        if expert[i]['u_order_substatus'] == 'Renewed' and expert[i]['u_order_status'] == 'Expired':
 
                             del expert[i]
-                            status += " || Many Expired Orders || "
 
-                        elif expert[i]['u_order_substatus'] == 'expired' and expert[i]['u_order_status'] == 'Expired':
+                    except:
+
+                        status += " || Renewed and Expired || "
+
+                    try:
+
+                        if expert[i]['u_order_substatus'] == 'expired' and expert[i]['u_order_status'] == 'Expired':
 
                             del expert[i]
-                            status += " || Many Expired Orders || "
 
-                        elif expert[i]['u_order_substatus'] == 'Pending Contract' and expert[i]['u_order_status'] == 'Open':
+                    except:
+
+                        status += " || Many Expired Orders || "
+
+                    try:
+
+                        if expert[i]['u_order_substatus'] == 'Pending Contract' and expert[i]['u_order_status'] == 'Open':
 
                             del expert[i]
 
@@ -123,6 +177,7 @@ class newDSMlookup:
                     try:
 
                         if expert[i]['u_order_status'] == 'Cancelled':
+
                             del expert[i]
                             status += " || Cancelled Contract || "
 
@@ -133,6 +188,7 @@ class newDSMlookup:
                     try:
 
                         if expert[i]['u_order_status'] == 'Inactive':
+
                             del expert[i]
                             status += " || Inactive Contract || "
 
@@ -167,9 +223,9 @@ class newDSMlookup:
                         srv_security = []
                         scontract = []
                         spas = []
-                        #scounter = 1
+                        security_dsm = '' #new 05/05/2022
                         collab_cover = ''
-                        print(expert)
+                        #print(expert)
                         for data in expert:
 
                             if cu == data['customer']:
@@ -257,10 +313,26 @@ class newDSMlookup:
 
                                     info['s_offer_name'] = data['u_offer_name'] # each product has different this should be on the dsms block
 
+
                                     # GET DSMS block for Security #
-                                    dsm = self.getDSMs(svr_number=data['number'])
+
+
+                                    if 'u_support_model' in data:
+
+                                        print(data['u_support_model'])
+
+                                        if data['u_support_model'] != 'On-Demand':
+
+                                            dsm = self.get_security_DSMs(svr_number=data['number'], on_demand= False)
+
+                                        elif data['u_support_model'] == 'On-Demand':
+
+                                            dsm = self.get_security_DSMs(svr_number=data['number'], on_demand= True)
 # work when a DSM is not assign ###
+
+
                                     for j in dsm:
+
 
                                         off_name = '_(N/A)_'
 
@@ -272,20 +344,37 @@ class newDSMlookup:
 
                                             off_name = '_(E)_'
 
-                                        if j.get('u_technical_expert.name') and j.get('u_technical_expert.user_name'):
+                                        if "u_support_model" in data and data['u_support_model'] != 'On-Demand':
 
                                             security_dsm = j.get('u_technical_expert.name') + ' (' + j.get('u_technical_expert.user_name') + ')' + ' ' + off_name
 
+                                            print("here4")
+
+                                        # new block 05/05/22
+                                        elif "u_support_model" in data and data['u_support_model'] == 'On-Demand':
+                                            #j.get('u_technical_expert.name') and j.get('u_technical_expert.user_name'):
+
+                                            print(data["u_te_primary"])
+                                            security_dsm += data['u_te_primary']
+
                                         else:
 
-                                            security_dsm = " N/A "
+                                            security_dsm = "No Assigned DSM"
 
                                         #print(j.get('u_role') + ' ' + data['u_covered_product'] + ' ' + j.get('u_technical_expert.name') + ' ' + j.get('u_technical_expert.user_name'))
-                                        sdsms['coverage'] = {j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + security_dsm}
+                                        if not 'u_role' in j:
 
-                                        if j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + security_dsm not in inserted_values:
+                                            role = "On-Demand"
 
-                                            inserted_values.append(j.get('u_role') + ': ' + data['u_covered_product'] + ' -> ' + security_dsm)
+                                        else:
+
+                                            role = j.get('u_role', None)
+
+                                        sdsms['coverage'] = {role + ': ' + data['u_covered_product'] + ' -> ' + security_dsm}
+
+                                        if role + ': ' + data['u_covered_product'] + ' -> ' + security_dsm not in inserted_values:
+
+                                            inserted_values.append(role + ': ' + data['u_covered_product'] + ' -> ' + security_dsm)
 
                                 #elif data['u_architecture'] == 'Security' and data['parent_contract'] is None:
 
@@ -359,8 +448,8 @@ class newDSMlookup:
                             if each['spas']:
                                 final_output += '\nPAS: ' + each['spas']
 
-                            if each['s_offer_name'] and each['s_offer_type']:
-                                final_output += '\nOffer: ' + each['s_offer_name'] + ' ' + each['s_offer_type']
+                                if each['s_offer_name'] and each['s_offer_type']:
+                                    final_output += '\nOffer: ' + each['s_offer_name'] + ' ' + each['s_offer_type']
 
                             if each['sweborder']:
                                 final_output += '\nWeb Order(s): ' + (", ".join(each['sweborder']))
@@ -378,16 +467,7 @@ class newDSMlookup:
 
                     return final_output
 
-dsmlookup = newDSMlookup()
+dsmlookup = NewDSMlookup()
 
-print(dsmlookup.chorus(account_name="duane"))
-print("\n\n")
-#print(dsmlookup.chorus(account_name="HUBBARD BROADCASTING INC"))
-print("\n\n")
-print(time.perf_counter() - start_time, "seconds")
-
-
-
-
-
+print(dsmlookup.chorus(account_name="GUN LAKE TRIBAL GAMING AUTHORITY"))
 
